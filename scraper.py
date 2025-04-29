@@ -31,17 +31,18 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
 
+        #Contains fragment
         if ("#" in url):
             parsed = url.split("#")[0] #Split at where it fragments into a list and get first element
 
         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
-        #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment"
-        #Contains fragment
+        #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
+
 
         if parsed.scheme not in set(["http", "https"]):
             return False
 
-        domains = ["ics.uci.edu", "ics.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+        domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
 
         #Check to see if domain in netloc(subdomain + domain)
         if not any(domain in parsed.netloc for domain in domains):
@@ -50,6 +51,16 @@ def is_valid(url):
         #Special Link since it has more than netloc to check
         if ("today.uci.edu" in parsed.netloc) and (parsed.path != "/department/information_computer_sciences/"):
             return False
+
+        #Do not want URL with dates since these go to news pages, where it can infinitely loop and get stuck
+        possible_year = parsed.path.split("/")[1].isdigit()
+        possible_month = parsed.path.split("/")[2].isdigit()
+        possible_day = parsed.path.split("/")[3].isdigit()
+
+        if (possible_year and possible_month and possible_day):
+            return False
+
+
 
 
         #As long as it is not any of these extensions, it returns True
