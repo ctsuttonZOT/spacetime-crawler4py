@@ -104,42 +104,39 @@ def extract_next_links(url, resp):
     return urls
 
 def is_valid(url):
-     # Decide whether to crawl this url or not. 
-     # If you decide to crawl it, return True; otherwise return False.
-     # There are already some conditions that return False.
-     try:
- 
-         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
-         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment"
-         if parsed.scheme not in set(["http", "https"]):
-             return False
-         domains = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu","www.stat.uci.edu"]
-         if parsed.netloc not in domains:
- 
-         domains = ["ics.uci.edu", "ics.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
- 
-         #Check to see if domain in netloc(subdomain + domain)
-         if not any(domain in parsed.netloc for domain in domains):
-             return False
- 
-         #Special Link since it has more than netloc to check
-         if (parsed.netloc == "www.today.uci.edu") and (parsed.path != "/department/information_computer_sciences/"):
-         if ("today.uci.edu" in parsed.netloc) and (parsed.path != "/department/information_computer_sciences/"):
-             return False
- 
- 
-         #As long as it is not any of these extensions, it returns True
-         return not re.match(
-             r".*\.(css|js|bmp|gif|jpe?g|ico"
-             + r"|png|tiff?|mid|mp2|mp3|mp4"
-             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-             + r"|epub|dll|cnf|tgz|sha1"
-             + r"|thmx|mso|arff|rtf|jar|csv"
-             + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
-             + r"|sql|apk|bat)$", parsed.path.lower())
- 
-     except TypeError:
-         print ("TypeError for ", parsed)
-         raise
+    # Decide whether to crawl this url or not. 
+    # If you decide to crawl it, return True; otherwise return False.
+    # There are already some conditions that return False.
+    try:
+
+        parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
+        #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment"
+        if parsed.scheme not in set(["http", "https"]):
+            return False
+
+        domains = ["ics.uci.edu", "ics.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+
+        #Check to see if domain in netloc(subdomain + domain)
+        if not any(domain in parsed.netloc for domain in domains):
+            return False
+
+        #Special Link since it has more than netloc to check
+        if ("today.uci.edu" in parsed.netloc) and (parsed.path != "/department/information_computer_sciences/"):
+            return False
+
+
+        #As long as it is not any of these extensions, it returns True
+        return not re.match(
+            r".*\.(css|js|bmp|gif|jpe?g|ico"
+            + r"|png|tiff?|mid|mp2|mp3|mp4"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+            + r"|epub|dll|cnf|tgz|sha1"
+            + r"|thmx|mso|arff|rtf|jar|csv"
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
+            + r"|sql|apk|bat)$", parsed.path.lower())
+
+    except TypeError:
+        print ("TypeError for ", parsed)
+        raise
