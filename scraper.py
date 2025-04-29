@@ -5,8 +5,8 @@ from collections import defaultdict
 from stopwords import STOPWORDS
 
 class ReportData:
-    # set of unique URLs, discarding the fragment part
-    unique_pages = set()
+    # num of unique URLs, discarding the fragment part
+    unique_pages = 0
 
     # tuple containing a URL, and the number of words in the page with the most # of words
     longest_page = (None, -1)
@@ -43,7 +43,7 @@ def update_unique_pages(url) -> bool:
     url_minus_fragment = urldefrag(url)[0]
 
     if url_minus_fragment not in ReportData.unique_pages:
-        ReportData.unique_pages.add(url_minus_fragment)
+        ReportData.unique_pages += 1
         write_data_to_file()
 
 
