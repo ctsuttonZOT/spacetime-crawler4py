@@ -21,7 +21,7 @@ class ReportData:
 
 def write_data_to_file():
     # sort words in descending order by frequency
-    sorted_words = [sorted(ReportData.word_frequencies.items(), key=lambda item: item[1], reverse=True)]
+    sorted_words = sorted(ReportData.word_frequencies.items(), key=lambda item: item[1], reverse=True)
     # cut down to only 50 words if longer than 50
     if len(sorted_words) >= 50:
         sorted_words = sorted_words[:51]
@@ -30,12 +30,12 @@ def write_data_to_file():
     sorted_subdomains = sorted(ReportData.subdomains.items())
 
     with open("data_report.txt", 'w') as file:
-        file.write(f"# unique pages: {ReportData.unique_pages}")
-        file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}")
+        file.write(f"# unique pages: {ReportData.unique_pages}\n")
+        file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}\n")
         for word in sorted_words:
-            file.write(f"{word} - {ReportData.word_frequencies[word]}")
-        for tuple in sorted_subdomains:
-            file.write(f"{tuple[0]} - {tuple[1]}")
+            file.write(f"{word[0]} - {ReportData.word_frequencies[word[1]]}\n")
+        for tup in sorted_subdomains:
+            file.write(f"{tup[0]} - {tup[1]}\n")
 
 
 def update_unique_pages(url) -> bool:
@@ -85,17 +85,17 @@ def scraper(url, resp):
 
     update_unique_pages(url)
 
+    html = BeautifulSoup(resp.raw_response.content, 'html.parser')
+
     # extract text (excluding HTML markup) from HTML
-    text = BeautifulSoup.get_text(seperator=' ')
+    text = html.get_text(strip=True)
     words = text.split()
-    words.strip()
 
     update_longest_page(url, words)
     update_word_frequencies(words)
 
     if is_subdomain(url):
         seen = set()
-        html = BeautifulSoup(resp.raw_response.content, 'html.parser')
         # find each hyperlink in html
         for tag in html.find_all('a', href=True):
             # combine hyperlink with base url to get whole url
@@ -111,8 +111,8 @@ def extract_next_links(url, resp):
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
     urls = []
 
-    for link in html.find_all('a', href=True):
-        urls.append(combine_url(url, link))
+    for tag in html.find_all('a', href=True):
+        urls.append(combine_url(url, tag["href"]))
 
     return urls
 
@@ -147,13 +147,15 @@ def is_valid(url):
         if ("today.uci.edu" in parsed.netloc) and (parsed.path != "/department/information_computer_sciences/"):
             return False
 
+        path_size = len(parsed.path.split("/"))
         #Do not want URL with dates since these go to news pages, where it can infinitely loop and get stuck
-        possible_year = parsed.path.split("/")[1].isdigit()
-        possible_month = parsed.path.split("/")[2].isdigit()
-        possible_day = parsed.path.split("/")[3].isdigit()
+        if (path_size > 3):
+            possible_year = parsed.path.split("/")[1].isdigit()
+            possible_month = parsed.path.split("/")[2].isdigit()
+            possible_day = parsed.path.split("/")[3].isdigit()
 
-        if (possible_year and possible_month and possible_day):
-            return False
+            if (possible_year and possible_month and possible_day):
+                return False
 
         if re.match(
                 r".*\.(css|js|bmp|gif|jpe?g|ico"
