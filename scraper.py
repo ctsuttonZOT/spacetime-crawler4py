@@ -5,8 +5,11 @@ from collections import defaultdict
 from stopwords import STOPWORDS
 
 class ReportData:
+    # set of seen unique pages
+    seen_unique_pages = set()
+
     # num of unique URLs, discarding the fragment part
-    unique_pages = 0
+    num_unique_pages = 0
 
     # tuple containing a URL, and the number of words in the page with the most # of words
     longest_page = (None, -1)
@@ -33,7 +36,7 @@ def write_data_to_file():
     sorted_subdomains = sorted(ReportData.subdomains.items())
 
     with open("data_report.txt", 'w') as file:
-        file.write(f"# unique pages: {ReportData.unique_pages}\n")
+        file.write(f"# unique pages: {ReportData.num_unique_pages}\n")
         file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}\n")
         for word in sorted_words:
             file.write(f"{word[0]} - {word[1]}\n")
@@ -46,8 +49,9 @@ def update_unique_pages(url) -> bool:
     # remove fragment from URL
     url_minus_fragment = urldefrag(url)[0]
 
-    if url_minus_fragment not in ReportData.unique_pages:
-        ReportData.unique_pages += 1
+    if url_minus_fragment not in ReportData.seen_unique_pages:
+        ReportData.num_unique_pages += 1
+        ReportData.seen_unique_pages.add(url_minus_fragment)
         write_data_to_file()
 
 
