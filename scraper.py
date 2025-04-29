@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 
 def scraper(url, resp):
@@ -25,6 +25,7 @@ def extract_next_links(url, resp):
 
     return urls
 
+visited = set()
 def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
@@ -35,9 +36,12 @@ def is_valid(url):
         if ("#" in url):
             parsed = url.split("#")[0] #Split at where it fragments into a list and get first element
 
+        #Already Visited Website (No need to go back/potential infinite trap)
+        if (parsed in visited):
+            return False
+
         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
-
 
         if parsed.scheme not in set(["http", "https"]):
             return False
@@ -60,20 +64,23 @@ def is_valid(url):
         if (possible_year and possible_month and possible_day):
             return False
 
+        if re.match(
+                r".*\.(css|js|bmp|gif|jpe?g|ico"
+                + r"|png|tiff?|mid|mp2|mp3|mp4"
+                + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+                + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+                + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+                + r"|epub|dll|cnf|tgz|sha1"
+                + r"|thmx|mso|arff|rtf|jar|csv"
+                + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
+                + r"|sql|apk|bat)$", parsed.path.lower()):
+            return False
 
+        #Restore back to link form (String)
+        parsed = urlunparse(parsed)
+        visited.add(parsed)
 
-
-        #As long as it is not any of these extensions, it returns True
-        return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
-            + r"|sql|apk|bat)$", parsed.path.lower())
+        return True
 
     except TypeError:
         print ("TypeError for ", parsed)
