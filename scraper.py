@@ -127,12 +127,12 @@ def is_valid(url):
         if ("#" in url):
             parsed = url.split("#")[0] #Split at where it fragments into a list and get first element
 
+        parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
+        #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
+
         #Already Visited Website (No need to go back/potential infinite trap)
         if (parsed in visited):
             return False
-
-        parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
-        #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
 
         if parsed.scheme not in set(["http", "https"]):
             return False
