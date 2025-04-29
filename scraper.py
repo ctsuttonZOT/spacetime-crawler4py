@@ -31,8 +31,13 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
 
+        if ("#" in url):
+            parsed = url.split("#")[0] #Split at where it fragments into a list and get first element
+
         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment"
+        #Contains fragment
+
         if parsed.scheme not in set(["http", "https"]):
             return False
 
