@@ -18,6 +18,9 @@ class ReportData:
     # dict of all subdomains in the uci.edu domain, key = URL, value = # of unique pages in subdomain
     subdomains = {}
 
+    # num of subdomains
+    total_num_subdomains = 0
+
 
 def write_data_to_file():
     # sort words in descending order by frequency
@@ -36,6 +39,7 @@ def write_data_to_file():
             file.write(f"{word[0]} - {word[1]}\n")
         for subdomain in sorted_subdomains:
             file.write(f"{subdomain[0]} - {subdomain[1]}\n")
+        file.write(f"# of uci.edu subdomains: {ReportData.total_num_subdomains}\n")
 
 
 def update_unique_pages(url) -> bool:
@@ -97,7 +101,10 @@ def scraper(url, resp):
     update_longest_page(url, words)
     update_word_frequencies(words)
 
+    # if a URL is a subdomain of uci.edu, count how many unique pages it has
     if is_subdomain(url):
+        # increment num of total subdomains
+        ReportData.num_subdomains += 1
         seen = set()
         # find each hyperlink in html
         for tag in html.find_all('a', href=True):
