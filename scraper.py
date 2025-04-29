@@ -1,8 +1,12 @@
 import re
+from nltk.corpus import words as english
 from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from stopwords import STOPWORDS
+
+# entire English dictionary
+ENGLISH_WORDS = set(english.words())
 
 class ReportData:
     # set of seen unique pages
@@ -55,6 +59,11 @@ def update_unique_pages(url) -> bool:
         write_data_to_file()
 
 
+def remove_non_english_and_stopwords(words):
+    # return a list of valid English non-stopwords
+    return [word.lower() for word in words if word.lower() not in STOPWORDS and word in ENGLISH_WORDS]
+
+
 def update_longest_page(url, words):
     # get word count
     word_count = len(words)
@@ -68,8 +77,7 @@ def update_longest_page(url, words):
 def update_word_frequencies(words):
     # update word frequencies
     for word in words:
-        if word not in STOPWORDS:
-            ReportData.word_frequencies[word] += 1
+        ReportData.word_frequencies[word] += 1
     write_data_to_file()
 
 
@@ -101,6 +109,9 @@ def scraper(url, resp):
     # extract text (excluding HTML markup) from HTML
     text = html.get_text(strip=True)
     words = text.split()
+
+    # remove all non-English words and all stopwords from list of words
+    words = remove_non_english_and_stopwords(words)
 
     update_longest_page(url, words)
     update_word_frequencies(words)
