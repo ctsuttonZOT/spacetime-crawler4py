@@ -30,15 +30,20 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
+
         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment"
         if parsed.scheme not in set(["http", "https"]):
             return False
-        domains = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu","www.stat.uci.edu"]
-        if parsed.netloc not in domains:
+
+        domains = ["ics.uci.edu", "ics.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+
+        #Check to see if domain in netloc(subdomain + domain)
+        if not any(domain in parsed.netloc for domain in domains):
             return False
+
         #Special Link since it has more than netloc to check
-        if (parsed.netloc == "www.today.uci.edu") and (parsed.path != "/department/information_computer_sciences/"):
+        if ("today.uci.edu" in parsed.netloc) and (parsed.path != "/department/information_computer_sciences/"):
             return False
 
 
