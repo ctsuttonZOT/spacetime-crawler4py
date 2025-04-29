@@ -108,7 +108,7 @@ def scraper(url, resp):
     # if a URL is a subdomain of uci.edu, count how many unique pages it has
     if is_subdomain(url):
         # increment num of total subdomains
-        ReportData.num_subdomains += 1
+        ReportData.total_num_subdomains += 1
         seen = set()
         # find each hyperlink in html
         for tag in html.find_all('a', href=True):
