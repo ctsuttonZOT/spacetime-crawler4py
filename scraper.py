@@ -19,12 +19,32 @@ class ReportData:
     subdomains = {}
 
 
+def write_data_to_file():
+    # sort words in descending order by frequency
+    sorted_words = [sorted(ReportData.word_frequencies.items(), key=lambda item: item[1], reverse=True)]
+    # cut down to only 50 words if longer than 50
+    if len(sorted_words) >= 50:
+        sorted_words = sorted_words[:51]
+    
+    # sort subdomains in alphabetical order
+    sorted_subdomains = sorted(ReportData.subdomains.items())
+
+    with open("data_report.txt", 'w') as file:
+        file.write(f"# unique pages: {ReportData.unique_pages}")
+        file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}")
+        for word in sorted_words:
+            file.write(f"{word} - {ReportData.word_frequencies[word]}")
+        for tuple in sorted_subdomains:
+            file.write(f"{tuple[0]} - {tuple[1]}")
+
+
 def update_unique_pages(url) -> bool:
     # remove fragment from URL
     url_minus_fragment = urldefrag(url)[0]
 
     if url_minus_fragment not in ReportData.unique_pages:
         ReportData.unique_pages.add(url_minus_fragment)
+        write_data_to_file()
 
 
 def update_longest_page(url, words):
@@ -34,6 +54,7 @@ def update_longest_page(url, words):
     # if word_count of current URL exceeds curr longest page, update the data
     if word_count > ReportData.longest_page[1]:
         ReportData.longest_page = (url, word_count)
+        write_data_to_file()
 
 
 def update_word_frequencies(words):
@@ -41,6 +62,7 @@ def update_word_frequencies(words):
     for word in words:
         if word not in STOPWORDS:
             ReportData.word_frequencies[word] += 1
+    write_data_to_file()
 
 
 def is_subdomain(url) -> bool:
@@ -81,6 +103,7 @@ def scraper(url, resp):
             if link not in seen:
                 seen.add(link)
         ReportData.subdomains[url] = len(seen)
+        write_data_to_file()
 
     return [link for link in links if is_valid(link)]
 
