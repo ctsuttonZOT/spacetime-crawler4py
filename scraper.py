@@ -31,12 +31,18 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
-        #Ex. Scheme="https", Netlock="www.helloworld.com", Path="/path/.../, Params="", query="query=123", Fragment="fragment"
+        #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment"
         if parsed.scheme not in set(["http", "https"]):
             return False
-        domains = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu","www.stat.uci.edu", "www.today.uci.edu"]
+        domains = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu","www.stat.uci.edu"]
         if parsed.netloc not in domains:
             return False
+        #Special Link since it has more than netloc to check
+        if (parsed.netloc == "www.today.uci.edu") and (parsed.path != "/department/information_computer_sciences/"):
+            return False
+
+
+        #As long as it is not any of these extensions, it returns True
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
