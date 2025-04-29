@@ -95,7 +95,7 @@ def scraper(url, resp):
 
     if is_subdomain(url):
         seen = set()
-        html = BeautifulSoup(resp.raw_response.content, 'html')
+        html = BeautifulSoup(resp.raw_response.content, 'html.parser')
         # find each hyperlink in html
         for tag in html.find_all('a', href=True):
             # combine hyperlink with base url to get whole url
@@ -108,11 +108,9 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    html = BeautifulSoup(resp.raw_response.content, 'html')
+    html = BeautifulSoup(resp.raw_response.content, 'html.parser')
     urls = []
 
-    for link in html.findall('a'):
-        urls.append(link.get('href'))
     for link in html.find_all('a', href=True):
         urls.append(combine_url(url, link))
 
