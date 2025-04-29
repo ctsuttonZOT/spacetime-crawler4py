@@ -30,8 +30,12 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
-        parsed = urlparse(url)
+        parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
+        #Ex. Scheme="https", Netlock="www.helloworld.com", Path="/path/.../, Params="", query="query=123", Fragment="fragment"
         if parsed.scheme not in set(["http", "https"]):
+            return False
+        domains = ["www.ics.uci.edu", "www.cs.uci.edu", "www.informatics.uci.edu","www.stat.uci.edu", "www.today.uci.edu"]
+        if parsed.netloc not in domains:
             return False
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
@@ -41,7 +45,8 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
+            + r"|sql|apk|bat)$", parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
