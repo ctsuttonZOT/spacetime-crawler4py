@@ -24,7 +24,7 @@ def write_data_to_file():
     sorted_words = sorted(ReportData.word_frequencies.items(), key=lambda item: item[1], reverse=True)
     # cut down to only 50 words if longer than 50
     if len(sorted_words) >= 50:
-        sorted_words = sorted_words[:51]
+        sorted_words = sorted_words[:49]
     
     # sort subdomains in alphabetical order
     sorted_subdomains = sorted(ReportData.subdomains.items())
@@ -33,9 +33,9 @@ def write_data_to_file():
         file.write(f"# unique pages: {ReportData.unique_pages}\n")
         file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}\n")
         for word in sorted_words:
-            file.write(f"{word[0]} - {ReportData.word_frequencies[word[1]]}\n")
-        for tup in sorted_subdomains:
-            file.write(f"{tup[0]} - {tup[1]}\n")
+            file.write(f"{word[0]} - {word[1]}\n")
+        for subdomain in sorted_subdomains:
+            file.write(f"{subdomain[0]} - {subdomain[1]}\n")
 
 
 def update_unique_pages(url) -> bool:
