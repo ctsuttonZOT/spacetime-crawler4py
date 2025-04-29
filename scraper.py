@@ -81,6 +81,9 @@ def combine_url(base_url, subdomain):
 
 
 def scraper(url, resp):
+    if resp.status != 200:
+        return []
+
     links = extract_next_links(url, resp)
 
     update_unique_pages(url)
