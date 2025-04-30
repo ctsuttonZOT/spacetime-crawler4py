@@ -23,7 +23,7 @@ class ReportData:
     word_frequencies = defaultdict(int)
 
     # dict of all subdomains in the uci.edu domain, key = URL, value = # of unique pages in subdomain
-    subdomains = {}
+    subdomains = defaultdict(int)
 
     # num of subdomains
     total_num_subdomains = 0
@@ -44,8 +44,10 @@ def write_data_to_file():
         file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}\n")
         for word in sorted_words:
             file.write(f"{word[0]} - {word[1]}\n")
+        file.write("--------------------\n")
         for subdomain in sorted_subdomains:
             file.write(f"{subdomain[0]} - {subdomain[1]}\n")
+        file.write("--------------------\n")
         file.write(f"# of uci.edu subdomains: {ReportData.total_num_subdomains}\n")
 
 
@@ -81,14 +83,22 @@ def update_word_frequencies(words):
     write_data_to_file()
 
 
-def is_subdomain(url) -> bool:
+def update_subdomains(url):
     parsed = urlparse(url)
     hostname = parsed.hostname
 
     if not hostname:
-        return False
+        return
 
-    return hostname == "uci.edu" or hostname.endswith('.' + "uci.edu")
+    elif hostname == "uci.edu" or hostname.endswith('.' + "uci.edu"):
+        # increment total subdomains if subdomain is new 
+        if hostname not in ReportData.subdomains:
+            ReportData.total_num_subdomains += 1
+        
+        # increment subdomain in subdomain dict
+        ReportData.subdomains[hostname] += 1
+    
+        write_data_to_file()
 
 
 def combine_url(base_url, subdomain):
@@ -115,20 +125,7 @@ def scraper(url, resp):
 
     update_longest_page(url, words)
     update_word_frequencies(words)
-
-    # if a URL is a subdomain of uci.edu, count how many unique pages it has
-    if is_subdomain(url):
-        # increment num of total subdomains
-        ReportData.total_num_subdomains += 1
-        seen = set()
-        # find each hyperlink in html
-        for tag in html.find_all('a', href=True):
-            # combine hyperlink with base url to get whole url
-            link = combine_url(url, tag["href"])
-            if link not in seen:
-                seen.add(link)
-        ReportData.subdomains[url] = len(seen)
-        write_data_to_file()
+    update_subdomains(url)
 
     return [link for link in links if is_valid(link)]
 
@@ -151,11 +148,11 @@ def normalizeUrl(url):
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
 
-    allowedParams = ['id', 'category', 'search', 'query', 'tags']
-    # blockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
+    # allowedParams = ['id', 'category', 'search', 'query', 'tags']
+    blockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
 
-    filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
-    #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
+    # filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
+    filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
 
     newQuery = urlencode(filteredQuery, doseq=True)
     return urlunparse(parsed._replace(query=newQuery))
