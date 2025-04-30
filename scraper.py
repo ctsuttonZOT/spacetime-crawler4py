@@ -1,6 +1,6 @@
 import re
 from nltk.corpus import words as english
-from urllib.parse import urlparse, urlunparse, urldefrag, urljoin
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, urldefrag, urljoin
 from bs4 import BeautifulSoup
 from collections import defaultdict
 from stopwords import STOPWORDS
@@ -141,6 +141,25 @@ def extract_next_links(url, resp):
 
     return urls
 
+def normalizeUrl(url):
+    # gets rid of fragments and only selects specific query fields
+
+    #Contains fragment
+    if ("#" in url):
+        url = url.split("#")[0] #Split at where it fragments into a list and get first element #kyle changed
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    allowedParams = ['id', 'category', 'search', 'query', 'tags']
+    # blockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
+
+    filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
+    #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
+
+    newQuery = urlencode(filteredQuery, doseq=True)
+    return urlunparse(parsed._replace(query=newQuery))
+
 visited = set()
 def is_valid(url):
     # Decide whether to crawl this url or not.
@@ -148,15 +167,12 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
 
-        #Contains fragment
-        if ("#" in url):
-            parsed = url.split("#")[0] #Split at where it fragments into a list and get first element
-
-        parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
+        # moved fragment remover to normalizeUrl
+        parsed = urlparse(normalizeUrl(url))# Splits into 6 parts: Scheme, netloc, path, params, query, fragment # kyle changed to normalize first
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
 
         #Already Visited Website (No need to go back/potential infinite trap)
-        if (parsed in visited):
+        if (urlunparse(parsed) in visited): #kyle changed
             return False
 
         if parsed.scheme not in set(["http", "https"]):
@@ -171,13 +187,14 @@ def is_valid(url):
         #Special Link since it has more than netloc to check
         if ("today.uci.edu" in parsed.netloc) and (parsed.path != "/department/information_computer_sciences/"):
             return False
-
-        path_size = len(parsed.path.split("/"))
+        
+        split_path = parsed.path.split("/")
+        path_size = len(split_path)
         #Do not want URL with dates since these go to news pages, where it can infinitely loop and get stuck
         if (path_size > 3):
-            possible_year = parsed.path.split("/")[1].isdigit()
-            possible_month = parsed.path.split("/")[2].isdigit()
-            possible_day = parsed.path.split("/")[3].isdigit()
+            possible_year = split_path[1].isdigit()
+            possible_month = split_path[2].isdigit()
+            possible_day = split_path[3].isdigit()
 
             if (possible_year and possible_month and possible_day):
                 return False
@@ -203,3 +220,4 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+        
