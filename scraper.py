@@ -139,20 +139,14 @@ def extract_next_links(url, resp):
     return urls
 
 def normalizeUrl(url):
-    # gets rid of fragments and only selects specific query fields
-
-    #Contains fragment
-    if ("#" in url):
-        url = url.split("#")[0] #Split at where it fragments into a list and get first element #kyle changed
-
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
 
-    # allowedParams = ['id', 'category', 'search', 'query', 'tags']
-    blockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
+    allowedParams = ['id', 'category', 'search', 'query', 'tags']
+    #lockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
 
-    # filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
-    filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
+    filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
+    #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
 
     newQuery = urlencode(filteredQuery, doseq=True)
     return urlunparse(parsed._replace(query=newQuery))
@@ -163,9 +157,16 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
+        #Contains fragment
+        if ("#" in url):
+            url = url.split("#")[0] #Split at where it fragments into a list and get first element
 
         # moved fragment remover to normalizeUrl
-        parsed = urlparse(normalizeUrl(url))# Splits into 6 parts: Scheme, netloc, path, params, query, fragment # kyle changed to normalize first
+        parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
+
+        if("doku.php" in parsed.path): # rewrite parsed for doku.php
+            parsed = urlparse(normalizeUrl(url))
+
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
 
         #Already Visited Website (No need to go back/potential infinite trap)
@@ -217,4 +218,3 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
-        
