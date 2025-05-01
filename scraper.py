@@ -138,6 +138,7 @@ def extract_next_links(url, resp):
 
     return urls
 
+# function not used currently, may be used later
 def normalizeUrl(url):
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
@@ -164,9 +165,6 @@ def is_valid(url):
         # moved fragment remover to normalizeUrl
         parsed = urlparse(url)# Splits into 6 parts: Scheme, netloc, path, params, query, fragment
 
-        if("doku.php" in parsed.path): # rewrite parsed for doku.php
-            parsed = urlparse(normalizeUrl(url))
-
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
 
         #Already Visited Website (No need to go back/potential infinite trap)
@@ -177,6 +175,10 @@ def is_valid(url):
             return False
 
         domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+
+        # gitlab is evil
+        if parsed.hostname == "gitlab.ics.uci.edu":
+            return False
 
         #Check to see if domain in netloc(subdomain + domain)
         if not any(domain in parsed.netloc for domain in domains):
