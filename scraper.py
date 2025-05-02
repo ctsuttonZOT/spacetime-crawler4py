@@ -1,4 +1,6 @@
 import re
+import json
+import os
 from nltk.corpus import words as english
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, urldefrag, urljoin
 from bs4 import BeautifulSoup
@@ -8,97 +10,94 @@ from stopwords import STOPWORDS
 # entire English dictionary
 ENGLISH_WORDS = set(english.words())
 
-class ReportData:
-    # set of seen unique pages
-    seen_unique_pages = set()
 
-    # num of unique URLs, discarding the fragment part
-    num_unique_pages = 0
-
-    # tuple containing a URL, and the number of words in the page with the most # of words
-    longest_page = (None, -1)
-
-    # a dict containing each found word and the frequency of it (will be sorted and constrained to top 50 at file write time)
-    # key = word, value = frequency
-    word_frequencies = defaultdict(int)
-
-    # dict of all subdomains in the uci.edu domain, key = URL, value = # of unique pages in subdomain
-    subdomains = defaultdict(int)
-
-    # num of subdomains
-    total_num_subdomains = 0
-
-
-def write_data_to_file():
-    # sort words in descending order by frequency
-    sorted_words = sorted(ReportData.word_frequencies.items(), key=lambda item: item[1], reverse=True)
-    # cut down to only 50 words if longer than 50
-    if len(sorted_words) >= 50:
-        sorted_words = sorted_words[:49]
-    
-    # sort subdomains in alphabetical order
-    sorted_subdomains = sorted(ReportData.subdomains.items())
-
-    with open("data_report.txt", 'w') as file:
-        file.write(f"# unique pages: {ReportData.num_unique_pages}\n")
-        file.write(f"Longest page: URL = {ReportData.longest_page[0]}, Length = {ReportData.longest_page[1]}\n")
-        for word in sorted_words:
-            file.write(f"{word[0]} - {word[1]}\n")
-        file.write("--------------------\n")
-        for subdomain in sorted_subdomains:
-            file.write(f"{subdomain[0]} - {subdomain[1]}\n")
-        file.write("--------------------\n")
-        file.write(f"# of uci.edu subdomains: {ReportData.total_num_subdomains}\n")
-
-
-def update_unique_pages(url) -> bool:
-    # remove fragment from URL
-    url_minus_fragment = urldefrag(url)[0]
-
-    if url_minus_fragment not in ReportData.seen_unique_pages:
-        ReportData.num_unique_pages += 1
-        ReportData.seen_unique_pages.add(url_minus_fragment)
-        write_data_to_file()
-
+class SeenURL:
+    seen = {}
 
 def remove_non_english_and_stopwords(words):
     # return a list of valid English non-stopwords
     return [word.lower() for word in words if word.lower() not in STOPWORDS and word in ENGLISH_WORDS]
 
 
-def update_longest_page(url, words):
-    # get word count
-    word_count = len(words)
+def init_data():
+    data = {
+    "seen_urls": {},
+    "unique_urls": 0,
+    "longest_page": ["NULL", -1],
+    "word_freqs": {},
+    "subdomains": {},
+    "total_subdomains": 0
+    }
 
-    # if word_count of current URL exceeds curr longest page, update the data
-    if word_count > ReportData.longest_page[1]:
-        ReportData.longest_page = (url, word_count)
-        write_data_to_file()
-
-
-def update_word_frequencies(words):
-    # update word frequencies
-    for word in words:
-        ReportData.word_frequencies[word] += 1
-    write_data_to_file()
+    with open("data_report.txt", 'w') as file:
+        json.dump(data, file)
 
 
-def update_subdomains(url):
-    parsed = urlparse(url)
-    hostname = parsed.hostname
+def update_data(url, words):
+    # structure of data
+    #####################
+    # {
+    # "seen_urls": dict{str: True},
+    # "unique_urls": int,
+    # "longest_page": tuple(str, int),
+    # "word_freqs": dict{str: int},
+    # "subdomains": dict{str: int},
+    # "total_subdomains": int
+    # }
+    #####################
 
-    if not hostname:
-        return
+    # if the file is empty, initialize it with default data
+    if os.stat("data_report.txt").st_size == 0:
+        init_data()
 
-    elif hostname == "uci.edu" or hostname.endswith('.' + "uci.edu"):
-        # increment total subdomains if subdomain is new 
-        if hostname not in ReportData.subdomains:
-            ReportData.total_num_subdomains += 1
+    with open("data_report.txt", "r+") as file:
+        data = json.load(file)
+
+        # update unique URLs
+        # remove fragment from URL
+        url_minus_fragment = urldefrag(url)[0]
+
+        if url_minus_fragment not in data["seen_urls"]:
+            data["unique_urls"] += 1
+            data["seen_urls"][url_minus_fragment] = True
+        SeenURL.seen = data["seen_urls"]
+
+        # update longest page
+        # get word count
+        word_count = len(words)
+
+        # if word_count of current URL exceeds curr longest page, update the data
+        if word_count > data["longest_page"][1]:
+            data["longest_page"] = (url, word_count)
+
+        # update word frequencies
+        for word in words:
+            if word in data["word_freqs"]:
+                data["word_freqs"][word] += 1
+            else:
+                data["word_freqs"][word] = 1
+
+        # update subdomains
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            return
+
+        elif hostname == "uci.edu" or hostname.endswith('.' + "uci.edu"):
+            # increment total subdomains if subdomain is new 
+            if hostname not in data["subdomains"]:
+                data["total_subdomains"] += 1
+            
+            # increment subdomain in subdomain dict
+            if hostname in data["subdomains"]:
+                data["subdomains"][hostname] += 1
+            else:
+                data["subdomains"][hostname] = 1
         
-        # increment subdomain in subdomain dict
-        ReportData.subdomains[hostname] += 1
-    
-        write_data_to_file()
+        file.seek(0)
+        json.dump(data, file)
+        file.truncate()
 
 
 def combine_url(base_url, subdomain):
@@ -112,8 +111,6 @@ def scraper(url, resp):
 
     links = extract_next_links(url, resp)
 
-    update_unique_pages(url)
-
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
     # extract text (excluding HTML markup) from HTML
@@ -123,11 +120,13 @@ def scraper(url, resp):
     # remove all non-English words and all stopwords from list of words
     words = remove_non_english_and_stopwords(words)
 
-    update_longest_page(url, words)
-    update_word_frequencies(words)
-    update_subdomains(url)
+    res = [link for link in links if is_valid(link)]
 
-    return [link for link in links if is_valid(link)]
+    # update report data and write it to file (also grab list of seen URLs)
+    update_data(url, words)
+
+    return res
+
 
 def extract_next_links(url, resp):
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
@@ -138,21 +137,22 @@ def extract_next_links(url, resp):
 
     return urls
 
+
 # function not used currently, may be used later
-def normalizeUrl(url):
-    parsed = urlparse(url)
-    query = parse_qs(parsed.query)
+# def normalizeUrl(url):
+#     parsed = urlparse(url)
+#     query = parse_qs(parsed.query)
 
-    allowedParams = ['id', 'category', 'search', 'query', 'tags']
-    #lockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
+#     allowedParams = ['id', 'category', 'search', 'query', 'tags']
+#     #lockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
 
-    filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
-    #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
+#     filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
+#     #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
 
-    newQuery = urlencode(filteredQuery, doseq=True)
-    return urlunparse(parsed._replace(query=newQuery))
+#     newQuery = urlencode(filteredQuery, doseq=True)
+#     return urlunparse(parsed._replace(query=newQuery))
 
-visited = set()
+
 def is_valid(url):
     # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
@@ -168,7 +168,7 @@ def is_valid(url):
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
 
         #Already Visited Website (No need to go back/potential infinite trap)
-        if (urlunparse(parsed) in visited): #kyle changed
+        if (urlunparse(parsed) in SeenURL.seen): #kyle changed
             return False
 
         if parsed.scheme not in set(["http", "https"]):
@@ -213,7 +213,6 @@ def is_valid(url):
 
         #Restore back to link form (String)
         parsed = urlunparse(parsed)
-        visited.add(parsed)
 
         return True
 
