@@ -1,5 +1,6 @@
 import re
 import json
+import os
 from nltk.corpus import words as english
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, urldefrag, urljoin
 from bs4 import BeautifulSoup
@@ -9,16 +10,34 @@ from stopwords import STOPWORDS
 # entire English dictionary
 ENGLISH_WORDS = set(english.words())
 
+
+class SeenURL:
+    seen = {}
+
 def remove_non_english_and_stopwords(words):
     # return a list of valid English non-stopwords
     return [word.lower() for word in words if word.lower() not in STOPWORDS and word in ENGLISH_WORDS]
+
+
+def init_data():
+    data = {
+    "seen_urls": {},
+    "unique_urls": 0,
+    "longest_page": ["NULL", -1],
+    "word_freqs": {},
+    "subdomains": {},
+    "total_subdomains": 0
+    }
+
+    with open("data_report.txt", 'w') as file:
+        json.dump(data, file)
 
 
 def update_data(url, words):
     # structure of data
     #####################
     # {
-    # "seen_urls": set(str),
+    # "seen_urls": dict{str: True},
     # "unique_urls": int,
     # "longest_page": tuple(str, int),
     # "word_freqs": dict{str: int},
@@ -26,6 +45,10 @@ def update_data(url, words):
     # "total_subdomains": int
     # }
     #####################
+
+    # if the file is empty, initialize it with default data
+    if os.stat("data_report.txt").st_size == 0:
+        init_data()
 
     with open("data_report.txt", "r+") as file:
         data = json.load(file)
@@ -36,7 +59,8 @@ def update_data(url, words):
 
         if url_minus_fragment not in data["seen_urls"]:
             data["unique_urls"] += 1
-            data["seen_urls"].add(url_minus_fragment)
+            data["seen_urls"][url_minus_fragment] = True
+        SeenURL.seen = data["seen_urls"]
 
         # update longest page
         # get word count
@@ -71,7 +95,9 @@ def update_data(url, words):
             else:
                 data["subdomains"][hostname] = 1
         
-        json.dump(data)
+        file.seek(0)
+        json.dump(data, file)
+        file.truncate()
 
 
 def combine_url(base_url, subdomain):
@@ -85,8 +111,6 @@ def scraper(url, resp):
 
     links = extract_next_links(url, resp)
 
-    update_unique_pages(url)
-
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
     # extract text (excluding HTML markup) from HTML
@@ -96,9 +120,13 @@ def scraper(url, resp):
     # remove all non-English words and all stopwords from list of words
     words = remove_non_english_and_stopwords(words)
 
+    res = [link for link in links if is_valid(link)]
+
+    # update report data and write it to file (also grab list of seen URLs)
     update_data(url, words)
 
-    return [link for link in links if is_valid(link)]
+    return res
+
 
 def extract_next_links(url, resp):
     html = BeautifulSoup(resp.raw_response.content, 'html.parser')
@@ -109,21 +137,22 @@ def extract_next_links(url, resp):
 
     return urls
 
+
 # function not used currently, may be used later
-def normalizeUrl(url):
-    parsed = urlparse(url)
-    query = parse_qs(parsed.query)
+# def normalizeUrl(url):
+#     parsed = urlparse(url)
+#     query = parse_qs(parsed.query)
 
-    allowedParams = ['id', 'category', 'search', 'query', 'tags']
-    #lockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
+#     allowedParams = ['id', 'category', 'search', 'query', 'tags']
+#     #lockedParams = ['do', 'rev', 'token', 'action', 'sid', 'user', 'access_token', 'diff', 'update', 'restore', 'sort', 'order']
 
-    filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
-    #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
+#     filteredQuery = {k: v for k, v in query.items() if k in allowedParams}
+#     #filteredQuery = {k: v for k, v in query.items() if k not in blockedParams}
 
-    newQuery = urlencode(filteredQuery, doseq=True)
-    return urlunparse(parsed._replace(query=newQuery))
+#     newQuery = urlencode(filteredQuery, doseq=True)
+#     return urlunparse(parsed._replace(query=newQuery))
 
-visited = set()
+
 def is_valid(url):
     # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
@@ -139,7 +168,7 @@ def is_valid(url):
         #Ex. Scheme="https", Netloc="www.helloworld.com", Path="/path/.../, Params="", query="query=int", Fragment="fragment" (Ignore)
 
         #Already Visited Website (No need to go back/potential infinite trap)
-        if (urlunparse(parsed) in visited): #kyle changed
+        if (urlunparse(parsed) in SeenURL.seen): #kyle changed
             return False
 
         if parsed.scheme not in set(["http", "https"]):
@@ -184,7 +213,6 @@ def is_valid(url):
 
         #Restore back to link form (String)
         parsed = urlunparse(parsed)
-        visited.add(parsed)
 
         return True
 
