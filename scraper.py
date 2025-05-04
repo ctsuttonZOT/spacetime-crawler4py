@@ -106,7 +106,7 @@ def combine_url(base_url, subdomain):
 
 
 def scraper(url, resp):
-    if resp.status != 200 or not resp.raw_response.content:
+    if resp.status != 200 or not resp.raw_response:
         return []
 
     links = extract_next_links(url, resp)
