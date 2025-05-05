@@ -153,6 +153,32 @@ def extract_next_links(url, resp):
 #     return urlunparse(parsed._replace(query=newQuery))
 
 
+def is_path_date(split_path: list) -> bool:
+    #Checks if keywords for date are in the path.
+    pattern = r'\d{4}[-/.]?\d{2}[-/.]?\d{2}'
+    keywords = {"day", "month", "year", "date", "time"}
+    for part in split_path:
+        if (part.lower() in keywords): #Does Keywords check on the part of the path
+            return True
+        if (re.fullmatch(pattern, part)): #Does Number Pattern check on the part of the path
+            return True
+    return False
+
+
+def is_query_date(query: dict) -> bool:
+    #Checks if keywords for date are in the query.
+    pattern = r'\d{4}[-/.]?\d{2}[-/.]?\d{2}'
+    keywords = {"day", "month", "year", "date", "time"}
+    for pair in query.items():
+        if (pair[0].lower() in keywords):
+            return True
+        # pair[1] is a list of every query for the given keyword, will likely only be one item
+        for item in pair[1]:
+            if (re.fullmatch(pattern, item)):
+                return True
+    return False
+
+
 def is_valid(url):
     # Decide whether to crawl this url or not.
     # If you decide to crawl it, return True; otherwise return False.
@@ -189,15 +215,10 @@ def is_valid(url):
             return False
         
         split_path = parsed.path.split("/")
-        path_size = len(split_path)
-        #Do not want URL with dates since these go to news pages, where it can infinitely loop and get stuck
-        if (path_size > 3):
-            possible_year = split_path[1].isdigit()
-            possible_month = split_path[2].isdigit()
-            possible_day = split_path[3].isdigit()
+        query_dict = parse_qs(parsed.query)
 
-            if (possible_year and possible_month and possible_day):
-                return False
+        if (is_path_date(split_path) or is_query_date(query_dict)):
+            return False
 
         if re.match(
                 r".*\.(css|js|bmp|gif|jpe?g|ico"
